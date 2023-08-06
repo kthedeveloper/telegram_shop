@@ -29,15 +29,14 @@ class NewOrder(StatesGroup):
 @dp.message_handler(commands=['start'])
 async def cmd_start(message: types.Message):
     await db.cmd_start_db(message.from_user.id)
-    await message.answer_sticker('CAACAgIAAxkBAAMWZLAF4CZKUOESWGGGF91vuV21QocAArorAAJ44aBK8_Bf88wvfVUvBA')
+
     await message.answer(f'{message.from_user.first_name}, добро пожаловать в магазин домашнего хлеба и выпечки!',
                          reply_markup=kb.main)
 
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
         await message.answer('Вы авторизовались как администратор', reply_markup=kb.main_admin)
     else:
-        await message.reply('К сожалению, я Вас не понял. Воспользуйтесь командой /help чтобы получить инструкции по '
-                            'использованию бота')
+        await message.reply('К сожалению, я Вас не понял.')
 
 
 @dp.message_handler(text='Контакты')
@@ -60,8 +59,7 @@ async def admin_panel(message: types.Message):
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
         await message.answer('Вы вошли в админ-панель', reply_markup=kb.admin_panel)
     else:
-        await message.reply('К сожалению, я Вас не понял. Воспользуйтесь командой /help чтобы получить инструкции по '
-                            'использованию бота')
+        await message.reply('К сожалению, я Вас не понял.')
 
 
 @dp.message_handler(text='Добавить товар')
@@ -70,7 +68,7 @@ async def add_item(message: types.Message):
         await NewOrder.type.set()
         await message.answer('Выберите тип товара', reply_markup=kb.catalog_list)
     else:
-        await message.reply('Я тебя не понимаю.')
+        await message.reply('К сожалению, я Вас не понял.')
 
 
 @dp.callback_query_handler(state=NewOrder.type)
@@ -122,7 +120,7 @@ async def add_item_photo(message: types.Message, state: FSMContext):
 @dp.message_handler()
 async def answer(message: types.Message):
     await message.reply(
-        'К сожалению, я Вас не понял. Воспользуйтесь командой /help чтобы получить инструкции по использованию бота')
+        'К сожалению, я Вас не понял.')
 
 
 @dp.callback_query_handler()
