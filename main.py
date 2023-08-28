@@ -6,6 +6,7 @@ from app import keyboards as kb
 from app.database import DatabaseManager
 from dotenv import load_dotenv
 import os
+import asyncio
 
 storage = MemoryStorage()
 load_dotenv()
@@ -15,7 +16,7 @@ database = DatabaseManager()
 
 
 async def on_startup(_):
-    # await db.db_start()
+    await database.connect_to_db()
     print('Бот успешно запущен')
 
 
@@ -48,12 +49,16 @@ async def contacts(message: types.Message):
 @dp.message_handler(text='Каталог')
 async def catalog(message: types.Message):
     answer_message, keyboard = await database.check_catalogue()
-    await message.answer(answer_message, reply_markup=keyboard)
+    await message.answer(answer_message, reply_markup=keyboard) # здесь вылетает клавиатура со всеми товарами по отдельности
 
 
 @dp.message_handler(text='Корзина')
 async def cart(message: types.Message):
-    await message.answer(f'Корзина пуста')  # тут должен вызываться метод check_cart из database.py
+    user_cart = await database.check_cart()
+    if user_cart:
+        pass
+    else:
+        await message.answer(f'Корзина пуста')  # тут должен вызываться метод check_cart из database.py
 
 
 #      -------------- Хэндлеры для команд администратора ------------
@@ -117,10 +122,11 @@ async def add_item_photo(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['photo'] = message.photo[
             0].file_id  # сохраняется не само фото, а присваиваемый ему телеграмом айдишник, его же можно сохранить в бд
-    #   await db.add_item(state)
+
+    await database.admin_add_product(state)
     await message.answer('Товар успешно создан!', reply_markup=kb.admin_panel)
     await state.finish()
-    # тут должно быть занесение всех данных нового товара в бд
+
 
 
 #      -------------- Любые неизвестные боту сообщения ------------
@@ -131,6 +137,26 @@ async def answer(message: types.Message):
 
 
 # -------------- Хэндлеры callback-data из Inline кнопок ------------
+
+
+@dp.callback_query_handler()
+async def test_handler(callback_query: types.CallbackQuery):
+    id_name_list = await database.get_products()
+    product_ids = [product_id for product_id, _ in id_name_list]
+    if callback_query.data in product_ids:
+
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                               text=await database.get_exact_product(callback_query.data))
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -146,3 +172,8 @@ async def callback_query_keyboard(callback_query: types.CallbackQuery):
 
 if __name__ == '__main__':
     executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
+    asyncio.set_event_loop_policy(
+        asyncio.WindowsSelectorEventLoopPolicy()
+    )
+    asyncio.run(database.connect_to_db())
+
